@@ -1,18 +1,33 @@
-import { port } from './config/environment';
-import app from './app';
-import connectDB from './db';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer'
+import express from 'express';
+import http from 'http';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import schema from './graphql/schema'
 
-const start = async () => {
-  try {
-    console.log('Connecting to database');
-    await connectDB();
-    console.log('Connected to database');
+const app = express();
+const httpServer = http.createServer(app);
 
-    await app.listen(port);
-    console.log(`🚀  GraphQL server running at port: ${port}`);
-  } catch {
-    console.log('Not able to run GraphQL server');
-  }
-};
+// Set up Apollo Server
+const serverStart = async () => {
+  const server = new ApolloServer({
+    schema,
+    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+  });
 
-start();
+  await server.start();
+
+  app.use(
+    cors(),
+    bodyParser.json(),
+    expressMiddleware(server),
+  );
+
+  await new Promise((resolve) => httpServer.listen({ port: 4000 }, resolve));
+  console.log(`🚀 Server ready at http://localhost:4000`);
+  return server;
+}
+
+serverStart();

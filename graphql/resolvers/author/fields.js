@@ -2,15 +2,12 @@ import { Publisher, WorksAt } from '../../../db/models';
 
 const authorFields = {
   Author: {
-    publishers: async (author) => {
+    publishers: async (author, _, { loaders }) => {
       const worksAt = await WorksAt.find({ author: author.id });
 
-      const publishers = await Publisher.find({
-        _id: { $in: worksAt.map(({ publisher }) => publisher) },
-      });
-
-      return publishers;
+      return loaders.publisher.many(worksAt.map(({ publisher }) => publisher));
     },
   },
 };
+
 export default authorFields;
